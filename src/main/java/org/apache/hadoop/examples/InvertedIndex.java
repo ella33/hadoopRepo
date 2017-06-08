@@ -1,8 +1,13 @@
 package org.apache.hadoop.examples;
 
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.StringTokenizer;
+import java.net.URI;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -17,22 +22,39 @@ import org.apache.hadoop.util.GenericOptionsParser;
 
 public class InvertedIndex {
 
+  private String cachedFile = "stopWords.txt";
+  private String stopWordsURI = "hdfs://localhost:9000/stopWords.txt#" + cachedFile;
+
   public static class InvertedIndexMapper extends Mapper<Object, Text, Text, Text>{
 
     private IntWritable lineNumber = new IntWritable(1);
     private Text word = new Text();
     private Text filename = new Text();
+    private ArrayList<String> stopWords = new ArrayList<String>();
+
+    @Override
+    public void setup(Context context) throws IOException, InterruptedException {
+      File file = new File(cachedFile);
+      try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+          stopWords.add(line); 
+        }
+      }
+    }
 
     public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
       String filenameStr = ((FileSplit) context.getInputSplit()).getPath().getName();
       filename = new Text(filenameStr);
       StringTokenizer itr = new StringTokenizer(value.toString());
-      while (itr.hasMoreTokens()) {    
-        word.set(itr.nextToken().toLowerCase());
-        // add the line number for the current file
-        Text fileAndLine = new Text(filename + " --- " + lineNumber.get());
-        // add to output
-        context.write(word, fileAndLine);
+      while (itr.hasMoreTokens()) {  
+        if (!stopWords.contains(itr.nextToken())) {
+          word.set(itr.nextToken().toLowerCase());
+          // add the line number for the current file
+          Text fileAndLine = new Text("(" + filename + "," + lineNumber.get() + ")");
+          // add to output
+          context.write(word, fileAndLine);
+        }  
       }
       // increase the line number after a line was processed  
       lineNumber.set(lineNumber.get() + 1);
@@ -72,6 +94,7 @@ public static void main(String[] args) throws Exception {
     job.setInputFormatClass(NLinesInputFormat.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
+    job.addCacheFile(new URI(stopWordsURI));
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
     System.exit(job.waitForCompletion(true) ? 0 : 1);
