@@ -22,9 +22,6 @@ import org.apache.hadoop.util.GenericOptionsParser;
 
 public class InvertedIndex {
 
-  private String cachedFile = "stopWords.txt";
-  private String stopWordsURI = "hdfs://localhost:9000/stopWords.txt#" + cachedFile;
-
   public static class InvertedIndexMapper extends Mapper<Object, Text, Text, Text>{
 
     private IntWritable lineNumber = new IntWritable(1);
@@ -34,13 +31,7 @@ public class InvertedIndex {
 
     @Override
     public void setup(Context context) throws IOException, InterruptedException {
-      File file = new File(cachedFile);
-      try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-        String line;
-        while ((line = br.readLine()) != null) {
-          stopWords.add(line); 
-        }
-      }
+      stopWords = StopWords.getList();
     }
 
     public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
@@ -94,7 +85,6 @@ public static void main(String[] args) throws Exception {
     job.setInputFormatClass(NLinesInputFormat.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
-    job.addCacheFile(new URI(stopWordsURI));
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
     System.exit(job.waitForCompletion(true) ? 0 : 1);
