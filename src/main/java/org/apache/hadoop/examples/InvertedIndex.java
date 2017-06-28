@@ -19,12 +19,13 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.commons.lang.StringUtils;
 
 public class InvertedIndex {
 
   public static class InvertedIndexMapper extends Mapper<Object, Text, Text, Text>{
 
-    private IntWritable lineNumber = new IntWritable(1);
+    //private IntWritable lineNumber = new IntWritable(1);
     private Text word = new Text();
     private Text filename = new Text();
     private ArrayList<String> stopWords = new ArrayList<String>();
@@ -37,22 +38,25 @@ public class InvertedIndex {
     public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
       String filenameStr = ((FileSplit) context.getInputSplit()).getPath().getName();
       filename = new Text(filenameStr);
-      StringTokenizer itr = new StringTokenizer(value.toString());
-      while (itr.hasMoreTokens()) {  
-        if (!stopWords.contains(itr.nextToken())) {
-          word.set(itr.nextToken().toLowerCase());
+      //StringTokenizer itr = new StringTokenizer(value.toString());
+      String[] lineData = value.toString().split("#"); 
+      String lineNumber = lineData[0];
+      String line = lineData[1];
+      for (String token : line.split("[:\\*$\\[\\]#();,'\".!?\\-\\s+]")) {  
+        if (!StringUtils.isEmpty(token.toLowerCase()) && !stopWords.contains(token.toLowerCase())) {
+          word.set(token.toLowerCase());
           // add the line number for the current file
-          Text fileAndLine = new Text("(" + filename + "," + lineNumber.get() + ")");
+          Text fileAndLine = new Text("(" + filename + "," + lineNumber + ")");
           // add to output
           context.write(word, fileAndLine);
         }  
       }
       // increase the line number after a line was processed  
-      lineNumber.set(lineNumber.get() + 1);
+      //lineNumber.set(lineNumber.get() + 1);
+    }
   }
-}
 
-public static class InvertedIndexReducer extends Reducer<Text,Text,Text,Text> {
+  public static class InvertedIndexReducer extends Reducer<Text,Text,Text,Text> {
 
     public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
       HashSet<String> set = new HashSet<String>();
@@ -68,9 +72,9 @@ public static class InvertedIndexReducer extends Reducer<Text,Text,Text,Text> {
       }
       context.write(key, new Text(builder.toString()));
     }
-}
+  }
 
-public static void main(String[] args) throws Exception {
+  public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     if (otherArgs.length != 2) {

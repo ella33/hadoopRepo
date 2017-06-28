@@ -1,6 +1,7 @@
 package org.apache.hadoop.examples;
 
 import java.io.IOException;
+import java.lang.System;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -15,7 +16,8 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.util.LineReader;
 
 public class NLinesRecordReader extends RecordReader<LongWritable, Text>{
-    private final int NLINESTOPROCESS = 3;
+    private final int NLINESTOPROCESS = 1;
+    private Path file;
     private LineReader in;
     private LongWritable key;
     private Text value = new Text();
@@ -23,7 +25,7 @@ public class NLinesRecordReader extends RecordReader<LongWritable, Text>{
     private long end =0;
     private long pos =0;
     private int maxLineLength;
-    private IntWritable lineNumber = new IntWritable(1);
+    private IntWritable lineNumber;
  
     @Override
     public void close() throws IOException {
@@ -55,7 +57,8 @@ public class NLinesRecordReader extends RecordReader<LongWritable, Text>{
     @Override
     public void initialize(InputSplit genericSplit, TaskAttemptContext context) throws IOException, InterruptedException {
         FileSplit split = (FileSplit) genericSplit;
-        final Path file = split.getPath();
+        file = split.getPath();
+        lineNumber = new IntWritable(0);
         Configuration conf = context.getConfiguration();
         this.maxLineLength = conf.getInt("mapred.linerecordreader.maxlength", Integer.MAX_VALUE);
         FileSystem fs = file.getFileSystem(conf);
@@ -79,6 +82,7 @@ public class NLinesRecordReader extends RecordReader<LongWritable, Text>{
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
     	lineNumber.set(lineNumber.get() + 1);
+        Text line;
         if (key == null) {
             key = new LongWritable();
         }
@@ -91,9 +95,11 @@ public class NLinesRecordReader extends RecordReader<LongWritable, Text>{
         int newSize = 0;
         for(int i=0;i<NLINESTOPROCESS;i++){
             Text v = new Text();
+            line = new Text(lineNumber.toString().concat("#"));
             while (pos < end) {
                 newSize = in.readLine(v, maxLineLength,Math.max((int)Math.min(Integer.MAX_VALUE, end-pos),maxLineLength));
-                value.append(v.getBytes(),0, v.getLength());
+                line.append(v.getBytes(), 0, v.getLength());
+                value.append(line.getBytes(),0, line.getLength());
                 value.append(endline.getBytes(),0, endline.getLength());
                 if (newSize == 0) {
                     break;

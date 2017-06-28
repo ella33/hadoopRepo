@@ -1,5 +1,6 @@
-org\apache\hadoop\examples\InvertedIndex$InvertedIndexMapper.class
-org\apache\hadoop\examples\InvertedIndex$InvertedIndexReducer.class
-org\apache\hadoop\examples\NLinesRecordReader.class
-org\apache\hadoop\examples\InvertedIndex.class
-org\apache\hadoop\examples\NLinesInputFormat.class
+org/apache/hadoop/examples/InvertedIndex.class
+org/apache/hadoop/examples/StopWords.class
+org/apache/hadoop/examples/InvertedIndex$InvertedIndexReducer.class
+org/apache/hadoop/examples/InvertedIndex$InvertedIndexMapper.class
+org/apache/hadoop/examples/NLinesRecordReader.class
+org/apache/hadoop/examples/NLinesInputFormat.class
