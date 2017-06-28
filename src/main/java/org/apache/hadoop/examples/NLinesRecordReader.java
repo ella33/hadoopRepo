@@ -21,9 +21,9 @@ public class NLinesRecordReader extends RecordReader<LongWritable, Text>{
     private LineReader in;
     private LongWritable key;
     private Text value = new Text();
-    private long start =0;
-    private long end =0;
-    private long pos =0;
+    private long start = 0;
+    private long end = 0;
+    private long pos = 0;
     private int maxLineLength;
     private IntWritable lineNumber;
  
@@ -81,8 +81,8 @@ public class NLinesRecordReader extends RecordReader<LongWritable, Text>{
  
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
-    	lineNumber.set(lineNumber.get() + 1);
         Text line;
+        lineNumber.set(lineNumber.get() + 1);
         if (key == null) {
             key = new LongWritable();
         }

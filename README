@@ -1,0 +1,24 @@
+------------------------
+HDInsight Hadoop cluster
+------------------------
+SSH Login:
+ssh sshuser@myhadoopcluster-ssh.azurehdinsight.net
+
+Run job:
+a.yarn jar InvertedIndex-1.0-SNAPSHOT.jar org.apache.hadoop.examples.InvertedIndex /user/root/smallinput /user/root/output/iiout /user/root/smallinput/stop-words.txt
+b. yarn jar InvertedIndex-1.0-SNAPSHOT.jar org.apache.hadoop.examples.InvertedIndex /user/root/input /user/root/output/iiout /user/root/input/stop-words.txt
+
+See results:
+hdfs dfs -cat /user/root/output/iiout/*
+
+Remove output results:
+hadoop fs -rm -r /user/root/output/iiout
+
+----------------------
+Command Line Arguments
+----------------------
+
+Example: 
+(1) - input path
+(2) - output path 
+(3) - stop words file

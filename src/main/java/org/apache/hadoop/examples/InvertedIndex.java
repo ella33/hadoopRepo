@@ -25,34 +25,46 @@ public class InvertedIndex {
 
   public static class InvertedIndexMapper extends Mapper<Object, Text, Text, Text>{
 
-    //private IntWritable lineNumber = new IntWritable(1);
     private Text word = new Text();
     private Text filename = new Text();
     private ArrayList<String> stopWords = new ArrayList<String>();
 
     @Override
     public void setup(Context context) throws IOException, InterruptedException {
-      stopWords = StopWords.getList();
+      Path[] localPaths = context.getLocalCacheFiles();
+      if(localPaths != null && localPaths.length > 0) {
+        readFile(localPaths[0]);
+      }
     }
+
+    private void readFile(Path filePath) {
+      try{
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath.toString()));
+        String stopWord = null;
+        while((stopWord = bufferedReader.readLine()) != null) {
+          stopWords.add(stopWord.toLowerCase());
+        }
+      } catch(IOException ex) {
+        System.err.println("Exception while reading stop words file: " + ex.getMessage());
+      }
+    }
+
 
     public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
       String filenameStr = ((FileSplit) context.getInputSplit()).getPath().getName();
       filename = new Text(filenameStr);
-      //StringTokenizer itr = new StringTokenizer(value.toString());
       String[] lineData = value.toString().split("#"); 
       String lineNumber = lineData[0];
       String line = lineData[1];
-      for (String token : line.split("[:\\*$\\[\\]#();,'\".!?\\-\\s+]")) {  
-        if (!StringUtils.isEmpty(token.toLowerCase()) && !stopWords.contains(token.toLowerCase())) {
-          word.set(token.toLowerCase());
-          // add the line number for the current file
+      for (String token : line.split("[:\\*$\\[\\]();,\".!?\\-\\s+]")) { 
+        token = token.toLowerCase().replaceAll("^[^a-zA-Z0-9\\s]+|[^a-zA-Z0-9\\s]+$", "");
+        if (!StringUtils.isEmpty(token) && !stopWords.contains(token)) {
+          word.set(token);
           Text fileAndLine = new Text("(" + filename + "," + lineNumber + ")");
           // add to output
           context.write(word, fileAndLine);
         }  
       }
-      // increase the line number after a line was processed  
-      //lineNumber.set(lineNumber.get() + 1);
     }
   }
 
@@ -77,8 +89,8 @@ public class InvertedIndex {
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-    if (otherArgs.length != 2) {
-        System.err.println("Usage: InvertedIndex <in> <out>");
+    if (otherArgs.length != 3) {
+        System.err.println("Usage: InvertedIndex <in> <out> <stopwords>");
         System.exit(2);
     }
     Job job = new Job(conf, "invertedIndex");
@@ -89,6 +101,7 @@ public class InvertedIndex {
     job.setInputFormatClass(NLinesInputFormat.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
+    job.addCacheFile(new Path(args[2]).toUri());
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
     System.exit(job.waitForCompletion(true) ? 0 : 1);
