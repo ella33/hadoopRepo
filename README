@@ -2,7 +2,6 @@
 HDInsight Hadoop cluster
 ------------------------
 SSH Login:
-ssh sshuser@myhadoopcluster-ssh.azurehdinsight.net
 
 Run job:
 a.yarn jar InvertedIndex-1.0-SNAPSHOT.jar org.apache.hadoop.examples.InvertedIndex /user/root/smallinput /user/root/output/iiout /user/root/smallinput/stop-words.txt
